@@ -10,6 +10,7 @@ A modern, real-time parcel tracking and delivery management SaaS platform for lo
 - **Database:** PostgreSQL, Prisma ORM v6
 
 ## Documentation
+- [Component Diagram](docs/COMPONENT_DIAGRAM.md)
 - [System Architecture & ERD](docs/ARCHITECTURE.md)
 - [Sequence Diagrams](docs/SEQUENCE_DIAGRAMS.md)
 

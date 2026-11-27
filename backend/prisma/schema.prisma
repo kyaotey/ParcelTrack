@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum CheckpointType {
+  PICKUP_HUB
+  SORTING_CENTRE
+  DISPATCH_BRANCH
+}
+
+enum DeliveryType {
+  STANDARD
+  EXPRESS
+  SAME_DAY
+}
+
+enum ParcelStatus {
+  PENDING
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_ATTEMPT
+  RETURNED
+}
+
+enum DeliveryStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum DeliveryOutcome {
+  DELIVERED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(AGENT)
+  phone        String?
+  vehicleInfo  String?
+  zone         String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdParcels     Parcel[]        @relation("ParcelCreator")
+  assignedDeliveries Delivery[]      @relation("DeliveryAgent")
+  assignedByMe       Delivery[]      @relation("DeliveryAssigner")
+  trackingEvents     TrackingEvent[]
+}
+
+model Checkpoint {
+  id        String         @id @default(uuid())
+  name      String
+  code      String         @unique
+  type      CheckpointType
+  address   String
+  city      String
+  lat       Float
+  lng       Float
+  createdAt DateTime       @default(now())
+
+  parcels        Parcel[]
+  trackingEvents TrackingEvent[]
+}
+
+model Parcel {
+  id                  String       @id @default(uuid())
+  trackingNumber      String       @unique
+  senderName          String
+  senderPhone         String
+  pickupAddress       String
+  pickupLat           Float
+  pickupLng           Float
+  recipientName       String
+  recipientPhone      String
+  destinationAddress  String
+  destinationLat      Float
+  destinationLng      Float
+  weightKg            Float
+  deliveryType        DeliveryType @default(STANDARD)
+  status              ParcelStatus @default(PENDING)
+  deliveryPin         String
+  estimatedDeliveryAt DateTime
+  routeGeometry       Json
+
+  currentCheckpointId String?
+  currentCheckpoint   Checkpoint? @relation(fields: [currentCheckpointId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("ParcelCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trackingEvents  TrackingEvent[]
+  delivery        Delivery?
+  proofOfDelivery ProofOfDelivery?
+
+  @@index([status])
+}
+
+model TrackingEvent {
+  id           String       @id @default(uuid())
+  parcelId     String
+  parcel       Parcel       @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+  checkpointId String?
+  checkpoint   Checkpoint?  @relation(fields: [checkpointId], references: [id])
+  status       ParcelStatus
+  locationName String
+  lat          Float
+  lng          Float
+  notes        String?
+  createdById  String?
+  createdBy    User?        @relation(fields: [createdById], references: [id])
+  createdAt    DateTime     @default(now())
+
+  @@index([parcelId, createdAt])
+}
+
+model Delivery {
+  id            String         @id @default(uuid())
+  parcelId      String         @unique
+  parcel        Parcel         @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+  agentId       String
+  agent         User           @relation("DeliveryAgent", fields: [agentId], references: [id])
+  assignedById  String
+  assignedBy    User           @relation("DeliveryAssigner", fields: [assignedById], references: [id])
+  status        DeliveryStatus @default(ASSIGNED)
+  attemptCount  Int            @default(0)
+  pinAttempts   Int            @default(0)
+  failureReason String?
+  assignedAt    DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  proofOfDelivery ProofOfDelivery?
+
+  @@index([agentId, status])
+}
+
+model ProofOfDelivery {
+  id            String          @id @default(uuid())
+  deliveryId    String          @unique
+  delivery      Delivery        @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  parcelId      String          @unique
+  parcel        Parcel          @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+  recipientName String
+  pinVerified   Boolean         @default(false)
+  outcome       DeliveryOutcome
+  notes         String?
+  deliveredAt   DateTime        @default(now())
+}

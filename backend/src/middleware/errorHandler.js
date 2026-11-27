@@ -7,6 +7,17 @@ function notFoundHandler(req, res, next) {
 
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_JSON',
+        message: 'Malformed JSON request body',
+        details: null,
+      },
+    });
+  }
+
   if (err && err.code === 'P2002') {
     const target = Array.isArray(err.meta?.target) ? err.meta.target.join(', ') : err.meta?.target;
     const message = target

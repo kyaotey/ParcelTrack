@@ -10,3 +10,5 @@ backend/prisma/*.db-journal
 .idea/
 .vscode/
 coverage/
+backend/test-api.ps1
+frontend/.env

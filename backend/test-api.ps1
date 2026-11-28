@@ -1,4 +1,4 @@
-﻿# ParcelTrack API smoke test
+# ParcelTrack API smoke test
 $body = @{ email = 'admin@parceltrack.dev'; password = 'admin123' } | ConvertTo-Json
 $response = Invoke-RestMethod -Method POST -Uri http://localhost:5000/api/auth/login -ContentType 'application/json' -Body $body
 $token = $response.data.token
